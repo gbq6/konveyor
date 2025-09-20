@@ -18,7 +18,7 @@ import io.github.magwas.runtime.Config;
 @Tag("end-to-end")
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = Config.class)
-public class GetASTofSourceTreeEndToEndTest implements TestData {
+class GetASTofSourceTreeEndToEndTest implements TestData {
 
 	@Autowired
 	GetASTofSourceTreeService getASTofSourceTree;

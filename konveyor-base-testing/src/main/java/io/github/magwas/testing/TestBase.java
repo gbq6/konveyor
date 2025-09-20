@@ -18,12 +18,12 @@ import io.github.magwas.kodekonveyorannotations.Glue;
 @Glue
 public class TestBase {
 	@BeforeEach
-	public void setUp() throws Throwable {
+	public void setUp() {
 		stubUp(this);
 	}
 
 	@AfterEach
-	public void tearDown() throws Throwable {}
+	public void tearDown() {}
 
 	@SuppressWarnings({"PMD.AvoidAccessibilityAlteration", "PMD.AvoidPrintStackTrace"})
 	public static void stubUp(final Object test) {
@@ -52,43 +52,42 @@ public class TestBase {
 
 	@SuppressWarnings({"PMD.AvoidPrintStackTrace", "PMD.AvoidAccessibilityAlteration"})
 	public static void stubFill(final Object instance) {
-		Class<? extends Object> type = instance.getClass();
+		Class<?> type = instance.getClass();
 		for (Field field : type.getDeclaredFields()) {
-			if (field.isAnnotationPresent(Autowired.class)) {
-				String stubName = field.getType().getName() + "Stub";
-				Class<?> stub;
-				Object value;
-				try {
-					stub = Class.forName(stubName);
-					if (null == stub.getAnnotation(IndirectlyTested.class)) {
-						Method method = stub.getDeclaredMethod("stub");
-						if (null == method) {
-							throw new TestInstantiationException(stubName + " does not have stub");
-						}
-						method.setAccessible(true);
-						value = method.invoke(null);
-					} else {
-						value = field.getType().getConstructor().newInstance();
-						stubFill(value);
-						value = spy(value);
-					}
-				} catch (ClassNotFoundException
-						| NoSuchMethodException
-						| SecurityException
-						| IllegalAccessException
-						| InvocationTargetException
-						| NullPointerException
-						| InstantiationException
-						| IllegalArgumentException e) {
-					e.printStackTrace();
-					throw new TestInstantiationException("problem with stub " + stubName, e);
+			if (!field.isAnnotationPresent(Autowired.class)) {
+				continue;
+			}
+
+			String stubName = field.getType().getName() + "Stub";
+			Class<?> stub;
+			Object value;
+			try {
+				stub = Class.forName(stubName);
+				if (null == stub.getAnnotation(IndirectlyTested.class)) {
+					Method method = stub.getDeclaredMethod("stub");
+					method.setAccessible(true);
+					value = method.invoke(null);
+				} else {
+					value = field.getType().getConstructor().newInstance();
+					stubFill(value);
+					value = spy(value);
 				}
-				field.setAccessible(true);
-				try {
-					field.set(instance, value);
-				} catch (IllegalAccessException e) {
-					throw new TestInstantiationException("stubFill", e);
-				}
+			} catch (ClassNotFoundException
+					| NoSuchMethodException
+					| SecurityException
+					| IllegalAccessException
+					| InvocationTargetException
+					| NullPointerException
+					| InstantiationException
+					| IllegalArgumentException e) {
+				e.printStackTrace();
+				throw new TestInstantiationException("problem with stub " + stubName, e);
+			}
+			field.setAccessible(true);
+			try {
+				field.set(instance, value);
+			} catch (IllegalAccessException e) {
+				throw new TestInstantiationException("stubFill", e);
 			}
 		}
 	}
